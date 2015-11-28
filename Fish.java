@@ -10,38 +10,32 @@ import java.util.regex.Matcher;
 public class Fish
 {
     private Ocean ocean;
-    private int nChrononsToSpawn;
-    private int iCoord, jCoord;
+    final private int nChrononsToSpawn = 100;
+    private int nChrononsSinceSpawn = 0;
+    public Coordinate coords;
 
-    public Fish(Ocean ocean, int iCoord, int jCoord)
+    public Fish(Ocean ocean, Coordinate coords)
     {
         this.ocean = ocean;
-        this.iCoord = iCoord;
-        this.jCoord = jCoord;
-        this.nChrononsToSpawn = 100;
+        this.coords = coords;
     }
 
     public void move() {
-        ArrayList<Integer> iCoords = new ArrayList<Integer>(), jCoords = new ArrayList<Integer>();
+        ArrayList<Coordinate> adjCoords = new ArrayList<Coordinate>();
 
-        for (int i = -1; i <= 1; ++i) {
-            iCoords.add(this.iCoord + i);
-            jCoords.add(this.jCoord + i);
-        }
+        for (int i = -1; i <= 1; ++i)
+            for(int j = -1; j <= 1; ++j)
+                adjCoords.add(new Coordinate(this.coords.i + i, this.coords.j + j));
 
-        Collections.shuffle(iCoords);
-        Collections.shuffle(jCoords);
+        Collections.shuffle(adjCoords);
 
-        for(Integer newJ: jCoords)
+        this.nChrononsSinceSpawn++;
+
+        for(Coordinate coord: adjCoords)
         {
-            for(Integer newI: iCoords)
+            if(this.ocean.move(this.coords, coord))
             {
-                if(ocean.move(this.iCoord, this.jCoord, newI, newJ))
-                {
-                    this.iCoord = newI;
-                    this.jCoord = newJ;
-                    return;
-                }
+                return;
             }
         }
     }

@@ -9,14 +9,13 @@ public class Ocean
 {
     private Fish[][] tiles;
     private ArrayList<Fish> fishes = new ArrayList<Fish>();
-    private int nTilesI, nTilesJ;
+    private Coordinate upperCoord;
     private int nSharks, nFish;
 
     public Ocean(int nTilesI, int nTilesJ)
     {
         this.tiles = new Fish[nTilesI][nTilesJ];
-        this.nTilesI = nTilesI;
-        this.nTilesJ = nTilesJ;
+        this.upperCoord = new Coordinate(nTilesI - 1, nTilesJ - 1);
     }
 
     public int getNFish()
@@ -29,29 +28,28 @@ public class Ocean
         return nSharks;
     }
 
-    public boolean isEmptyTile(int i, int j)
+    public boolean isEmptyTile(Coordinate coord)
     {
-        return this.tiles[i][j] == null;
+        return this.tiles[coord.i][coord.j] == null;
     }
 
-    public boolean isFish(int i, int j)
-    {
-        return this.tiles[i][j] instanceof Fish;
-    }
+    public boolean isFishTile(Coordinate coord) { return this.tiles[coord.i][coord.j].getClass().equals(Fish.class); }
+
+    public boolean isSharkTile(Coordinate coord) { return this.tiles[coord.i][coord.j].getClass().equals(Shark.class); }
 
     public void populate(double fishProbability, double sharkProbability)
     {
-        for (int j = 0; j < nTilesJ; ++j)
+        for (int j = 0; j <= upperCoord.j; ++j)
         {
-            for (int i = 0; i < nTilesI; ++i)
+            for (int i = 0; i <= upperCoord.i; ++i)
             {
                 double rand = Math.random();
 
                 if (rand < fishProbability) {
-                    this.spawnFish(i, j);
+                    this.spawnFish(new Coordinate(i, j));
                 }
                 else if (rand < fishProbability + sharkProbability) {
-                    this.spawnShark(i, j);
+                    this.spawnShark(new Coordinate(i, j));
                 }
                 else
                     tiles[i][j] = null;
@@ -59,59 +57,61 @@ public class Ocean
         }
     }
 
-    public void spawnFish(int i, int j)
+    public void spawnFish(Coordinate coord)
     {
-        if (tiles[i][j] != null)
+        if (!this.isEmptyTile(coord))
             return;
 
-        tiles[i][j] = new Fish(this, i, j);
-        fishes.add(tiles[i][j]);
+        tiles[coord.i][coord.j] = new Fish(this, coord);
+        fishes.add(tiles[coord.i][coord.j]);
         ++nFish;
     }
 
-    public void spawnShark(int i, int j)
+    public void spawnShark(Coordinate coord)
     {
-        if (tiles[i][j] != null)
+        if (!this.isEmptyTile(coord))
             return;
 
-        tiles[i][j] = new Shark(this, i, j);
-        fishes.add(tiles[i][j]);
+        tiles[coord.i][coord.j] = new Shark(this, coord);
+        fishes.add(tiles[coord.i][coord.j]);
         ++nSharks;
     }
 
-    public void despawnFish(int i, int j)
+    public void despawnFish(Coordinate coord)
     {
-        if (!tiles[i][j].getClass().equals(Fish.class))
+        if (!this.isFishTile(coord))
             return;
 
-        fishes.remove(tiles[i][j]);
-        tiles[i][j] = null;
+        fishes.remove(tiles[coord.i][coord.j]);
+        tiles[coord.i][coord.j] = null;
         --nFish;
     }
 
-    public void despawnShark(int i, int j)
+    public void despawnShark(Coordinate coord)
     {
-        if (!tiles[i][j].getClass().equals(Shark.class))
+        if (!this.isSharkTile(coord))
             return;
 
-        fishes.remove(tiles[i][j]);
-        tiles[i][j] = null;
+        fishes.remove(tiles[coord.i][coord.j]);
+        tiles[coord.i][coord.j] = null;
         --nSharks;
     }
 
-    public boolean move(int i, int j, int newI, int newJ)
+    public boolean move(Coordinate coord, Coordinate newCoord)
     {
-        if(newI < 0 || newI >= nTilesI || newJ < 0 || newJ >= nTilesJ || tiles[newI][newJ] != null)
+        if(!newCoord.isBoundedBy(new Coordinate(0, 0), this.upperCoord) || !this.isEmptyTile(newCoord))
             return false;
 
-        tiles[newI][newJ] = tiles[i][j];
-        tiles[i][j] = null;
+        tiles[newCoord.i][newCoord.j] = tiles[coord.i][coord.j];
+        tiles[coord.i][coord.j] = null;
+        tiles[newCoord.i][newCoord.j].coords = newCoord;
+
         return true;
     }
 
     public void moveAll()
     {
-        Collections.shuffle(fishes);
+        Collections.shuffle(fishes); // randomize the order in which fish move
 
         for (Fish fish : fishes)
             fish.move();
@@ -120,9 +120,9 @@ public class Ocean
     public String getString()
     {
         String str = "";
-        for (int j = 0; j < nTilesJ; ++j)
+        for (int j = 0; j <= upperCoord.j; ++j)
         {
-            for (int i = 0; i < nTilesI; ++i)
+            for (int i = 0; i <= upperCoord.i; ++i)
             {
                 if (tiles[i][j] == null)
                     str += "| ";
