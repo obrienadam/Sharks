@@ -2,6 +2,8 @@
  * Created by roni5_000 on 2015-11-23.
  */
 
+import sun.plugin.dom.core.CoreConstants;
+
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -9,12 +11,13 @@ public class Ocean
 {
     private Fish[][] tiles;
     private ArrayList<Fish> fishes = new ArrayList<Fish>();
-    private Coordinate upperCoord;
+    private Coordinate lowerCoord, upperCoord;
     private int nSharks, nFish;
 
     public Ocean(int nTilesI, int nTilesJ)
     {
         this.tiles = new Fish[nTilesI][nTilesJ];
+        this.lowerCoord = new Coordinate(0, 0);
         this.upperCoord = new Coordinate(nTilesI - 1, nTilesJ - 1);
     }
 
@@ -28,12 +31,15 @@ public class Ocean
         return nSharks;
     }
 
-    public boolean isEmptyTile(Coordinate coord)
-    {
-        return this.tiles[coord.i][coord.j] == null;
+    public boolean isEmptyTile(Coordinate coord) {
+        return coord.isBoundedBy(this.lowerCoord, this.upperCoord) && this.tiles[coord.i][coord.j] == null;
     }
 
-    public boolean isFishTile(Coordinate coord) { return this.tiles[coord.i][coord.j].getClass().equals(Fish.class); }
+    public boolean isFishTile(Coordinate coord) {
+        return coord.isBoundedBy(this.lowerCoord, this.upperCoord)
+                && this.tiles[coord.i][coord.j] != null
+                && this.tiles[coord.i][coord.j].getClass().equals(Fish.class);
+    }
 
     public boolean isSharkTile(Coordinate coord) { return this.tiles[coord.i][coord.j].getClass().equals(Shark.class); }
 
@@ -77,6 +83,15 @@ public class Ocean
         ++nSharks;
     }
 
+    public void despawn(Coordinate coord){
+        if(this.isEmptyTile(coord))
+            return;
+        else if (this.isSharkTile(coord))
+            this.despawnShark(coord);
+        else if (this.isFishTile(coord))
+            this.despawnFish(coord);
+    }
+
     public void despawnFish(Coordinate coord)
     {
         if (!this.isFishTile(coord))
@@ -101,6 +116,8 @@ public class Ocean
     {
         if(!newCoord.isBoundedBy(new Coordinate(0, 0), this.upperCoord) || !this.isEmptyTile(newCoord))
             return false;
+        else if (Math.abs(newCoord.i - coord.i) > 1 || Math.abs(newCoord.j - coord.j) > 1)
+            return false;
 
         tiles[newCoord.i][newCoord.j] = tiles[coord.i][coord.j];
         tiles[coord.i][coord.j] = null;
@@ -109,12 +126,67 @@ public class Ocean
         return true;
     }
 
-    public void moveAll()
-    {
+    public void moveAll() {
         Collections.shuffle(fishes); // randomize the order in which fish move
 
-        for (Fish fish : fishes)
+        ArrayList<Fish> currentFishes = new ArrayList<Fish>(this.fishes);
+
+        for (Fish fish : currentFishes)
             fish.move();
+    }
+
+    public void removeDeadFish(){
+        ArrayList<Fish> deadFishes = new ArrayList<Fish>();
+
+        for(Fish fish: fishes){
+            if(fish.isDead())
+                deadFishes.add(fish);
+        }
+
+        for(Fish deadFish: deadFishes)
+            this.despawn(deadFish.coords);
+    }
+
+    public Coordinate getRandomEmptyAdjacentTile(Coordinate coord)
+    {
+        ArrayList<Coordinate> adjCoords = new ArrayList<Coordinate>();
+
+        for (int i = -1; i <= 1; ++i)
+            for(int j = -1; j <= 1; ++j)
+                adjCoords.add(new Coordinate(coord.i + i, coord.j + j));
+
+        Collections.shuffle(adjCoords);
+
+        for(Coordinate adjCoord: adjCoords)
+        {
+            if(this.isEmptyTile(adjCoord))
+            {
+                return adjCoord;
+            }
+        }
+
+        return null;
+    }
+
+    public Coordinate getRandomAdjacentFishTile(Coordinate coord)
+    {
+        ArrayList<Coordinate> adjCoords = new ArrayList<Coordinate>();
+
+        for (int i = -1; i <= 1; ++i)
+            for(int j = -1; j <= 1; ++j)
+                adjCoords.add(new Coordinate(coord.i + i, coord.j + j));
+
+        Collections.shuffle(adjCoords);
+
+        for(Coordinate adjCoord: adjCoords)
+        {
+            if(this.isFishTile(adjCoord))
+            {
+                return adjCoord;
+            }
+        }
+
+        return null;
     }
 
     public String getString()

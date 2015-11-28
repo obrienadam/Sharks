@@ -9,10 +9,13 @@ import java.util.regex.Matcher;
  */
 public class Fish
 {
-    private Ocean ocean;
-    final private int nChrononsToSpawn = 100;
-    private int nChrononsSinceSpawn = 0;
+    protected Ocean ocean;
+    final protected int nChrononsToSpawn = 8;
+    protected int nChrononsSinceSpawn = 0;
     public Coordinate coords;
+
+    private int age = 0;
+    private int maxAge = 17;
 
     public Fish(Ocean ocean, Coordinate coords)
     {
@@ -21,22 +24,27 @@ public class Fish
     }
 
     public void move() {
-        ArrayList<Coordinate> adjCoords = new ArrayList<Coordinate>();
 
-        for (int i = -1; i <= 1; ++i)
-            for(int j = -1; j <= 1; ++j)
-                adjCoords.add(new Coordinate(this.coords.i + i, this.coords.j + j));
+        Coordinate newCoord = this.ocean.getRandomEmptyAdjacentTile(this.coords);
 
-        Collections.shuffle(adjCoords);
+        if(newCoord != null)
+            this.ocean.move(this.coords, newCoord);
 
-        this.nChrononsSinceSpawn++;
+        ++this.nChrononsSinceSpawn;
+        ++this.age;
+        this.spawn();
+    }
 
-        for(Coordinate coord: adjCoords)
-        {
-            if(this.ocean.move(this.coords, coord))
-            {
-                return;
-            }
+    public void spawn(){
+        Coordinate newCoord = this.ocean.getRandomEmptyAdjacentTile(this.coords);
+
+        if(newCoord != null && this.nChrononsSinceSpawn%this.nChrononsToSpawn == 0) {
+            this.ocean.spawnFish(newCoord);
+            this.nChrononsSinceSpawn = 0;
         }
+    }
+
+    public boolean isDead(){
+        return this.age > this.maxAge;
     }
 }
